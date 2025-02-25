@@ -5,24 +5,36 @@ fn main() {
     // Windows-specific build configurations
     #[cfg(target_os = "windows")]
     {
-        // Create the manifest for UAC elevation (run as administrator)
-        let manifest = r#"
+        // Create a more complete manifest with explicit version info
+        // This helps avoid conflicts with other embedded manifests
+        let manifest = r#"<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <assembly xmlns="urn:schemas-microsoft-com:asm.v1" manifestVersion="1.0">
-<trustInfo xmlns="urn:schemas-microsoft-com:asm.v3">
+  <assemblyIdentity
+    type="win32"
+    name="SecurityAgent"
+    version="1.0.0.0"
+    processorArchitecture="*"/>
+  <trustInfo xmlns="urn:schemas-microsoft-com:asm.v3">
     <security>
-        <requestedPrivileges>
-            <requestedExecutionLevel level="requireAdministrator" uiAccess="false" />
-        </requestedPrivileges>
+      <requestedPrivileges>
+        <requestedExecutionLevel level="requireAdministrator" uiAccess="false"/>
+      </requestedPrivileges>
     </security>
-</trustInfo>
-</assembly>
-        "#;
+  </trustInfo>
+  <compatibility xmlns="urn:schemas-microsoft-com:compatibility.v1">
+    <application>
+      <!-- Windows 10 and 11 -->
+      <supportedOS Id="{8e0f7a12-bfb3-4fe8-b9a5-48fd50a15a9a}"/>
+    </application>
+  </compatibility>
+</assembly>"#;
         
+        // Write the manifest to a file
         std::fs::write("security_agent.manifest", manifest)
             .expect("Failed to write manifest file");
         
-        // Tell Cargo where to find the manifest
-        println!("cargo:rustc-link-arg-bins=/MANIFEST:EMBED");
-        println!("cargo:rustc-link-arg-bins=/MANIFESTINPUT:security_agent.manifest");
+        // Set linker arguments to use our manifest
+        println!("cargo:rustc-link-arg=/MANIFEST:EMBED");
+        println!("cargo:rustc-link-arg=/MANIFESTINPUT:security_agent.manifest");
     }
 }
